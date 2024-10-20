@@ -31,6 +31,13 @@ public class SearchClient {
         System.out.println("See you next time!");
     }
 
+    // Creates an inverted index for a list of Media objects
+    // Parameters:
+    //   - docs: List of Media objects to create the index for
+    // Returns:
+    //   - index: Map where the keys are individual words (in lowercase)
+    //     considered case-insensitively that appear in each of the Media objects and the values 
+    //     are sets of Media objects in which those words appear
     public static Map<String, Set<Media>> createIndex(List<Media> docs) {
         Map<String, Set<Media>> index = new TreeMap<>();
 
