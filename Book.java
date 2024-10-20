@@ -16,11 +16,7 @@ public class Book implements Media, Comparable<Book> {
     //   - title: String representing the title of the book
     //   - author: String representing the author of the book
     public Book(String title, String author) {
-        this.title = title;
-        this.authors = new ArrayList<>();
-        this.authors.add(author);
-        this.ratings = new ArrayList<>();
-        this.words = new ArrayList<>();
+        this(title, new ArrayList<>(Arrays.asList(author)));
     }
 
     // Constructor that initializes the book with the provided title and multiple authors
@@ -40,12 +36,7 @@ public class Book implements Media, Comparable<Book> {
     //   - author: String representing the author of the book
     //   - sc: Scanner object to read the words of the book
     public Book(String title, String author, Scanner sc) {
-        this.title = title;
-        this.authors = new ArrayList<>();
-        this.authors.add(author);
-        this.ratings = new ArrayList<>();
-        this.words = new ArrayList<>();
-
+        this(title, new ArrayList<>(Arrays.asList(author)));
         while (sc.hasNext()) {
             this.words.add(sc.next());
         }
@@ -132,50 +123,49 @@ public class Book implements Media, Comparable<Book> {
         this.currentQuery = query;
     }
 
-    // Compares this book to another book for ranking purposes
+    // Compares this book to another book through rating, title, and authors for ranking purposes
     // Parameters:
     //   - other: Book object to compare to
     // Returns:
-    //   - Integer denoitng the comparison result: -1 is less relevant, 1 is more relevant, 0 is equally relevant
+    //   - Integer denoting the comparison result: -1 is less relevant, 1 is more relevant, 0 is equally relevant
     @Override
     public int compareTo(Book other) {
-    int thisCount = 0;
+        int thisCount = 0;
 
-    for (String word : this.words) {
-        if (word.equalsIgnoreCase(this.currentQuery)) {
-            thisCount++;
+        for (String word : this.words) {
+            if (word.equalsIgnoreCase(this.currentQuery)) {
+                thisCount++;
+            }
         }
-    }
 
-    int otherCount = 0;
+        int otherCount = 0;
 
-    for (String word : other.words) {
-        if (word.equalsIgnoreCase(other.currentQuery)) {
-            otherCount++;
+        for (String word : other.words) {
+            if (word.equalsIgnoreCase(other.currentQuery)) {
+                otherCount++;
+            }
         }
-    }
 
-    if (thisCount < otherCount) {
-        return -1;
-    }
-    else if (thisCount > otherCount) {
-        return 1;
-    } 
-    else {
-        // If counts are equal, use average rating as a tiebreaker
-        double thisRating = this.getAverageRating();
-        double otherRating = other.getAverageRating();
-
-        if (thisRating < otherRating) {
+        if (thisCount < otherCount) {
             return -1;
         }
-        else if (thisRating > otherRating) {
+        else if (thisCount > otherCount) {
             return 1;
-        }
+        } 
         else {
-            return 0;
+            // If counts are equal, use average rating as a tiebreaker
+            double thisRating = this.getAverageRating();
+            double otherRating = other.getAverageRating();
+
+            if (thisRating < otherRating) {
+                return -1;
+            }
+            else if (thisRating > otherRating) {
+                return 1;
+            }
+            else {
+                return 0;
+            }
         }
-    }
-    
     }
 }
