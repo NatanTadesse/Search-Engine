@@ -49,7 +49,7 @@ public interface Media {
     public List<String> getWords();
 
     /**
-    * Produce a readable string representation. of this media
+    * Produce a readable string repre   sentation. of this media
     *
     * If the media has zero ratings, the format will be:
     * "<title> by [<artists>]"
@@ -62,4 +62,11 @@ public interface Media {
     * @ returns     The appropriately formatted string representation
     */
     public String toString();
+
+    /**
+     * Sets the query for this media.
+     *
+     * @param query     The query to be set.
+     */
+    public void setQuery(String query);
 }
