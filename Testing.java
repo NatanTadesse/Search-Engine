@@ -1,50 +1,147 @@
-import org.junit.jupiter.api.*;
-import static org.junit.jupiter.api.Assertions.*;
+import java.io.*;
 import java.util.*;
 
-public class Testing {
+// This class allows users to find and rate books within BOOK_DIRECTORY
+// containing certain terms
+public class SearchClient {
+    public static final String BOOK_DIRECTORY = "./books";
 
-    @Test
-    @DisplayName("Book 2 string constructor")
-    public void testBook2String() {
-        Book book = new Book("Title", "Author");
+    public static void main(String[] args) throws FileNotFoundException {
+        Scanner console = new Scanner(System.in);
+        List<Book> books = loadBooks();
+        List<Media> media = new ArrayList<>(books);
 
-        assertEquals("Title", book.getTitle());
+        Map<String, Set<Media>> index = createIndex(media);
 
-        assertEquals(List.of("Author"), book.getArtists());
+        System.out.println("Welcome to the CSE 123 Search Engine!");
+        String command = "";
+        while (!command.equalsIgnoreCase("quit")) {
+            System.out.println("What would you like to do? [Search, Rate, Quit]");
+            System.out.print("> ");
+            command = console.nextLine();
 
-        assertEquals("Title by [Author]", book.toString());
+            if (command.equalsIgnoreCase("search")) {
+                searchQuery(console, media, index);
+            } else if (command.equalsIgnoreCase("rate")) {
+                addRating(console, media);
+            } else if (!command.equalsIgnoreCase("quit")) {
+                System.out.println("Invalid command, please try again.");
+            }
+        }
+        System.out.println("See you next time!");
     }
 
-    @Test
-    @DisplayName("Book string, list constructor")
-    public void testBookStringList() {
-        Book book = new Book("Title", List.of("Author 1", "Author 2"));
+    // Creates an inverted index for a list of Media objects
+    // Parameters:
+    //   - docs: List of Media objects to create the index for
+    // Returns:
+    //   - index: Map where the keys are individual words (in lowercase)
+    //     considered case-insensitively that appear in each of the Media objects and the values 
+    //     are sets of Media objects in which those words appear
+    public static Map<String, Set<Media>> createIndex(List<Media> docs) {
+        Map<String, Set<Media>> index = new TreeMap<>();
 
-        assertEquals("Title", book.getTitle());
-
-        assertEquals(List.of("Author 1", "Author 2"), book.getArtists());
-
-        assertEquals("Title by [Author 1, Author 2]", book.toString());
+        for (Media doc : docs) {
+            List<String> words = doc.getWords();
+            for (String word : words) {
+                word = word.toLowerCase();
+                if (!index.containsKey(word)) {
+                    index.put(word, new HashSet<>());
+                }
+                index.get(word).add(doc);
+            }
+        }
+        return index;
     }
 
-    @Test
-    @DisplayName("createIndex tests")
-    public void testInvertedIndex() {
-        Book mistborn = new Book("Mistborn", "Brandon Sanderson",
-                                 new Scanner("Epic fantasy worldbuildling content"));
-        Book farenheit = new Book("Farenheit 451", "Ray Bradbury",
-                                  new Scanner("Realistic \"sci-fi\" content"));
-        Book hobbit = new Book("The Hobbit", "J.R.R. Tolkein",
-                               new Scanner("Epic fantasy quest content"));
-        
-        List<Media> books = List.of(mistborn, farenheit, hobbit);
-        Map<String, Set<Media>> index = InvertedIndex.createIndex(books);
-        
-        assertFalse(index.containsKey("sci-fi"));
-        assertTrue(index.containsKey("\"sci-fi\""));
+    // Allows the user to search a specific query using the provided 'index' to find appropraite
+    //  Media entries.
+    //
+    // Parameters:
+    //   console - the Scanner to get user input from
+    //   index - invertedIndex mapping terms to the Set of media containing those terms
+    public static void searchQuery(Scanner console, List<Media> documents, Map<String, Set<Media>> index) {
+        System.out.println("Enter query:");
+        System.out.print("> ");
+        String query = console.nextLine();
 
-        Set<Media> expected = Set.of(mistborn, hobbit);
-        assertEquals(expected, index.get("fantasy"));
+        for (Media doc : documents) { doc.setQuery(query); }
+        Set<Media> result = search(index, query);
+        
+        if (result.isEmpty()) {
+            System.out.println("\tNo results!");
+        } else {
+            for (Media m : result) {
+                System.out.println("\t" + m.toString());
+            }
+        }
+    }
+
+    // Allows the user to add a rating to one of the options wthin 'media'
+    //
+    // Parameters:
+    //   console - the Scanner to get user input from
+    //   media - list of all media options loaded into the search engine
+    public static void addRating(Scanner console, List<Media> media) {
+        for (int i = 0; i < media.size(); i++) {
+            System.out.println("\t" + i + ": " + media.get(i).toString());
+        }
+        System.out.println("What would you like to rate (enter index)?");
+        System.out.print("> ");
+        int choice = Integer.parseInt(console.nextLine());
+        if (choice < 0 || choice >= media.size()) {
+            System.out.println("Invalid choice");
+        } else {
+            System.out.println("Rating [" + media.get(choice).getTitle() + "]");
+            System.out.println("What rating would you give?");
+            System.out.print("> ");
+            int rating = Integer.parseInt(console.nextLine());
+            media.get(choice).addRating(rating);
+        }
+    }
+
+    // Searches a specific query using the provided 'index' to find appropraite Media entries.
+    //  terms are determined by whitespace separation. If a term is proceeded by '-' any entry
+    //  containing that term will be removed from the result.
+    //
+    // Parameters:
+    //   index - invertedIndex mapping terms to the Set of media containing those terms
+    //   query - user's entered query string to use in searching
+    //
+    // Returns:
+    //   An optional set of all Media containing the requirested terms. If none, Optional.Empty()
+    public static Set<Media> search(Map<String, Set<Media>> index, String query) {
+        Set<Media> ret = new TreeSet<>();
+
+        Scanner tokens = new Scanner(query);
+        while (tokens.hasNext()) {
+            String token = tokens.next().toLowerCase();
+
+            if (index.containsKey(token)) {
+                ret.addAll(index.get(token));
+            }
+        }
+        return ret;
+    }
+
+    // Loads all books from BOOK_DIRECTORY. Assumes that each book starts with two lines -
+    //      "Title: " which is followed by the book's title
+    //      "Author: " which is followed by the book's author
+    //
+    // Returns:
+    //   A list of all book objects corresponding to the ones located in BOOK_DIRECTORY
+    public static List<Book> loadBooks() throws FileNotFoundException {
+        List<Book> ret = new ArrayList<>();
+        
+        File dir = new File(BOOK_DIRECTORY);
+        for (File f : dir.listFiles()) {
+            Scanner sc = new Scanner(f, "utf-8");
+            String title = sc.nextLine().substring("Title: ".length());
+            String author = sc.nextLine().substring("Author: ".length());
+
+            ret.add(new Book(title, author, sc));
+        }
+
+        return ret;
     }
 }
